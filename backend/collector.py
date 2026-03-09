@@ -14,10 +14,10 @@ log = logging.getLogger(__name__)
 
 # Bundesland codes as used by e-control (type=BL)
 BUNDESLAENDER = {
-    "OÖ":  "OOE",
-    "Sbg": "SAL",
-    "NÖ":  "NOE",
-    "Wien":"WIE",
+    "OÖ":   4,
+    "Sbg":  5,
+    "NÖ":   3,
+    "Wien": 9,
 }
 
 FUEL_TYPES = ["SUP", "DIE", "GAS"]

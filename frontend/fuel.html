@@ -321,7 +321,7 @@ async function loadVisibleStations() {
 
     // 2. MARKER NUR BEI GUTEM ZOOM ZEICHNEN
     // Ab Zoom 9 (oder welchen Wert du bevorzugst) zeichnen wir.
-    if (zoom >= 12) {
+    if (zoom >= 8) {
         document.getElementById('visible-count').textContent = `TOP 5 PREISE`;
         document.getElementById('visible-sub').textContent = `${stations.length} TANKSTELLEN IM BILD`;
 
