@@ -65,7 +65,7 @@ pip install -r requirements.txt
 Das System wurde so konzipiert, dass es die E-Control API maximal schont und zu 100 % konform mit den Nutzungsbedingungen arbeitet.
 
 ### 1. Das On-Demand Radar
-- Wenn du die Karte im Browser bewegst, sendet das Frontend die **Mittelpunkt-Koordinaten** an das Backend (maximal 1 Anfrage pro Sekunde gedrosselt).
+- Wenn du die Karte im Browser bewegst, sendet das Frontend die **Mittelpunkt-Koordinaten** an das Backend (maximal 1 Anfrage pro 0,5 Sekunden, gedrosselt).
 - Das Backend prüft die lokale Datenbank (`fuel.db`).
 - **Cache:** Sind die Daten in diesem Bereich jünger als 60 Minuten, werden sofort die lokalen Daten ans Frontend geschickt. Sind die Daten älter (oder nicht vorhanden), macht das Backend einen "Live-Ping" an die E-Control API, speichert die frischen Preise in der fuel.db datei ab und liefert sie aus.
 
