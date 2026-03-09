@@ -1,6 +1,10 @@
 # Fuel Tactical — Setup Guide
 
-Ein responsives, kartenbasiertes Dashboard zur Visualisierung der aktuell günstigsten Treibstoffpreise in Österreich, basierend auf der E-Control API. 
+Ein einfaches Dashboard zur Visualisierung von Treibstoffpreisen in Österreich auf Basis der E-Control API.
+
+![License](https://img.shields.io/badge/License-MIT-green.svg)
+![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)
+![Flask](https://img.shields.io/badge/Framework-Flask-lightgrey.svg)
 
 ## Projektstruktur
 
