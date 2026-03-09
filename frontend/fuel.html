@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Fuel Tactical</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --accent: #2979ff;
+            --bg: #080808;
+            --surface: #0f0f0f;
+            --border: rgba(255,255,255,0.07);
+            --text: #e8e8e8;
+            --text-dim: #555;
+            --danger: #ff3b30;
+            --success: #00e676;
+            --mono: 'IBM Plex Mono', monospace;
+            --sans: 'IBM Plex Sans', sans-serif;
+            --sidebar: 300px;
+            --header: 48px;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body, html { height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); overflow: hidden; }
+
+        /* HEADER */
+        header {
+            position: fixed; top: 0; left: 0; right: 0;
+            height: var(--header); z-index: 100;
+            background: rgba(8,8,8,0.92);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            display: flex; align-items: center;
+            padding: 0 20px; gap: 0;
+        }
+        .brand { font-family: var(--mono); font-size: 13px; font-weight: 600; letter-spacing: 3px; display: flex; align-items: center; gap: 12px; }
+        .brand span { color: var(--accent); }
+        .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); box-shadow: 0 0 8px var(--success); animation: pulse 2s ease-in-out infinite; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+        .header-spacer { flex: 1; }
+        .nav-group { display: flex; align-items: center; gap: 10px; margin-left: 20px; }
+        .nav-group span { font-family: var(--mono); font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; }
+        select {
+            background: transparent; border: 1px solid var(--border);
+            color: var(--text); font-family: var(--mono); font-size: 11px;
+            padding: 6px 10px; border-radius: 4px; outline: none; transition: .2s; cursor: pointer;
+        }
+        select:hover { border-color: var(--accent); }
+        option { background: #111; color: var(--text); }
+        .last-update { font-family: var(--mono); font-size: 9px; color: var(--text-dim); letter-spacing: 1px; margin-left: 20px; }
+
+        /* LAYOUT */
+        #layout { position: fixed; top: var(--header); left: 0; right: 0; bottom: 0; display: flex; }
+        #map { flex: 1; background: #080808; }
+
+        /* SIDEBAR */
+        #sidebar {
+            width: var(--sidebar);
+            background: var(--surface);
+            border-left: 1px solid var(--border);
+            display: flex; flex-direction: column;
+            padding: 14px; gap: 12px;
+            flex-shrink: 0;
+        }
+        .sidebar-header {
+            font-family: var(--mono); font-size: 10px;
+            color: var(--text-dim); letter-spacing: 2px;
+            padding-bottom: 10px; border-bottom: 1px solid var(--border);
+        }
+        .sidebar-sub { font-family: var(--mono); font-size: 9px; color: var(--text-dim); letter-spacing: 1px; margin-top: 2px; }
+        .station-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 2px; }
+        .station-list::-webkit-scrollbar { width: 3px; }
+        .station-list::-webkit-scrollbar-thumb { background: var(--border); }
+
+        .cam-card {
+            border: 1px solid var(--border); background: #000;
+            border-radius: 6px; padding: 14px 12px; cursor: pointer;
+            transition: border-color .15s, box-shadow .15s;
+            position: relative; flex-shrink: 0;
+        }
+        .cam-card:hover { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+        .cam-card.active { border-color: var(--success); box-shadow: 0 0 0 1px var(--success); }
+        .rank-badge {
+            position: absolute; top: 10px; right: 10px;
+            font-family: var(--mono); font-size: 9px; color: var(--text-dim);
+            letter-spacing: 1px;
+        }
+        .price-text { font-family: var(--mono); font-size: 18px; font-weight: 600; display: block; margin-bottom: 8px; }
+        .cam-label strong { display: block; font-size: 11px; color: #fff; margin-bottom: 3px; text-transform: uppercase; }
+        .cam-label span { font-size: 9px; font-family: var(--mono); color: var(--text-dim); text-transform: uppercase; }
+
+        /* Connector line canvas */
+        #connector-canvas {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none; z-index: 99;
+        }
+
+        /* MODAL */
+        #modal {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.88); z-index: 1000;
+            display: none; justify-content: center; align-items: center;
+            backdrop-filter: blur(8px);
+        }
+        #dossier {
+            width: 92vw; max-width: 680px; max-height: 90vh;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            display: flex; flex-direction: column;
+            overflow: hidden;
+        }
+        .d-header { padding: 24px 28px 0; flex-shrink: 0; }
+        .d-id { font-family: var(--mono); font-size: 10px; color: var(--accent); letter-spacing: 2px; margin-bottom: 6px; }
+        .d-title { font-size: 16px; font-weight: 600; text-transform: uppercase; margin-bottom: 16px; }
+        .d-body { flex: 1; overflow-y: auto; padding: 0 28px 24px; }
+        .d-body::-webkit-scrollbar { width: 3px; }
+        .d-body::-webkit-scrollbar-thumb { background: var(--border); }
+
+        .d-table { display: flex; flex-direction: column; margin-bottom: 20px; }
+        .d-row { display: flex; align-items: baseline; padding: 8px 0; border-bottom: 1px solid var(--border); }
+        .d-row:last-child { border-bottom: none; }
+        .d-key { font-family: var(--mono); font-size: 9px; color: var(--text-dim); letter-spacing: 2px; text-transform: uppercase; width: 40%; flex-shrink: 0; }
+        .d-val { font-family: var(--mono); font-size: 11px; color: var(--text); }
+
+        /* Chart tabs */
+        .chart-section { margin-bottom: 20px; }
+        .chart-tabs { display: flex; gap: 4px; margin-bottom: 14px; }
+        .chart-tab {
+            font-family: var(--mono); font-size: 10px; letter-spacing: 1px;
+            padding: 6px 12px; border: 1px solid var(--border);
+            background: transparent; color: var(--text-dim);
+            border-radius: 3px; cursor: pointer; transition: .15s;
+        }
+        .chart-tab:hover { border-color: var(--accent); color: var(--accent); }
+        .chart-tab.active { border-color: var(--accent); color: var(--accent); background: rgba(41,121,255,0.1); }
+        .chart-wrap { height: 160px; position: relative; }
+
+        .d-footer { padding: 16px 28px; border-top: 1px solid var(--border); display: flex; gap: 8px; flex-shrink: 0; }
+        .btn { flex: 1; padding: 10px; border-radius: 4px; font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 1px; cursor: pointer; transition: filter .2s; text-decoration: none; text-align: center; border: none; }
+        .btn-google { background: #34A853; color: #fff; }
+        .btn-google:hover { filter: brightness(1.15); }
+        .btn-apple { background: #0066CC; color: #fff; }
+        .btn-apple:hover { filter: brightness(1.15); }
+        .btn-secondary { background: transparent; color: var(--text-dim); border: 1px solid var(--border) !important; }
+        .btn-secondary:hover { border-color: #fff !important; color: #fff; }
+
+        /* Color scale legend */
+        .legend {
+            position: absolute; bottom: 30px; left: 14px;
+            background: rgba(8,8,8,0.85); border: 1px solid var(--border);
+            border-radius: 6px; padding: 10px 12px;
+            font-family: var(--mono); font-size: 9px; color: var(--text-dim);
+            z-index: 10; letter-spacing: 1px;
+        }
+        .legend-bar {
+            width: 120px; height: 6px; border-radius: 3px;
+            background: linear-gradient(to right, #00e676, #ffd600, #ff3b30);
+            margin: 6px 0 4px;
+        }
+        .legend-labels { display: flex; justify-content: space-between; }
+    </style>
+</head>
+<body>
+
+<canvas id="connector-canvas"></canvas>
+
+<header>
+    <div class="brand">FUEL <span>TACTICAL</span> <div class="status-dot"></div></div>
+    <div class="header-spacer"></div>
+
+    <div class="nav-group">
+        <span>COMMODITY</span>
+        <select id="fuelSelect" onchange="loadVisibleStations()">
+            <option value="SUP">SUPER 95</option>
+            <option value="DIE">DIESEL</option>
+            <option value="GAS">CNG GAS</option>
+        </select>
+    </div>
+
+    <div class="last-update" id="last-update">DB: —</div>
+</header>
+
+<div id="layout">
+    <div id="map"></div>
+    <div id="sidebar">
+        <div>
+            <div class="sidebar-header" id="visible-count">TOP 5 IM BLICKFELD</div>
+            <div class="sidebar-sub" id="visible-sub">— bewege die karte —</div>
+        </div>
+        <div class="station-list" id="station-list"></div>
+    </div>
+</div>
+
+<!-- Legend -->
+<div class="legend" id="map-legend" style="display:none">
+    PREIS-SKALA
+    <div class="legend-bar"></div>
+    <div class="legend-labels">
+        <span id="leg-min">—</span>
+        <span id="leg-max">—</span>
+    </div>
+</div>
+
+<!-- Modal -->
+<div id="modal" onclick="closeModal()">
+    <div id="dossier" onclick="event.stopPropagation()">
+        <div class="d-header">
+            <div class="d-id" id="d-id">NODE ID</div>
+            <div class="d-title" id="d-title">STATION NAME</div>
+        </div>
+        <div class="d-body">
+            <div class="d-table" id="d-table"></div>
+            <div class="chart-section">
+                <div class="chart-tabs">
+                    <button class="chart-tab active" onclick="switchPeriod('24h',this)">24H</button>
+                    <button class="chart-tab" onclick="switchPeriod('7d',this)">7 TAGE</button>
+                    <button class="chart-tab" onclick="switchPeriod('30d',this)">MONAT</button>
+                    <button class="chart-tab" onclick="switchPeriod('365d',this)">JAHR</button>
+                </div>
+                <div class="chart-wrap">
+                    <canvas id="price-chart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="d-footer">
+            <a href="#" id="link-google" target="_blank" class="btn btn-google">GOOGLE MAPS</a>
+            <a href="#" id="link-apple"  target="_blank" class="btn btn-apple">APPLE MAPS</a>
+            <button class="btn btn-secondary" onclick="closeModal()">CLOSE</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// ── CONFIG ────────────────────────────────────────────────────────────────────
+const API = '';   // same origin via Flask; empty = relative URLs
+
+// ── MAP SETUP ─────────────────────────────────────────────────────────────────
+const map = L.map('map', {
+    center: [48.0, 14.0], zoom: 9,
+    zoomControl: false, attributionControl: false,
+    keepBuffer: 4
+});
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    keepBuffer: 4
+}).addTo(map);
+L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let allMarkers   = {};   // station_id → {marker, data}
+let activeChart  = null;
+let currentStation = null;
+let currentPeriod  = '24h';
+let hoveredCardId  = null;
+
+// ── COLOR SCALE ───────────────────────────────────────────────────────────────
+function priceColor(price, min, max) {
+    const t = max === min ? 0 : (price - min) / (max - min);
+    // green → yellow → red
+    const r = t < 0.5 ? Math.round(t * 2 * 255) : 255;
+    const g = t < 0.5 ? 200 : Math.round((1 - (t - 0.5) * 2) * 200);
+    return `rgb(${r},${g},40)`;
+}
+
+// ── LOAD STATIONS ─────────────────────────────────────────────────────────────
+async function loadVisibleStations() {
+    const fuel = document.getElementById('fuelSelect').value;
+    const b = map.getBounds();
+    const params = new URLSearchParams({
+        fuel,
+        lat_min: b.getSouth().toFixed(5),
+        lat_max: b.getNorth().toFixed(5),
+        lon_min: b.getWest().toFixed(5),
+        lon_max: b.getEast().toFixed(5),
+    });
+
+    let stations;
+    try {
+        const r = await fetch(`${API}/api/stations?${params}`);
+        stations = await r.json();
+    } catch(e) {
+        document.getElementById('visible-count').textContent = 'API FEHLER';
+        return;
+    }
+
+    if (!stations.length) {
+        document.getElementById('visible-count').textContent = 'KEINE DATEN';
+        document.getElementById('visible-sub').textContent = 'Noch keine DB-Einträge';
+        return;
+    }
+
+    // Remove old markers
+    Object.values(allMarkers).forEach(({marker}) => map.removeLayer(marker));
+    allMarkers = {};
+
+    const prices = stations.map(s => s.amount).filter(Boolean);
+    const minP = Math.min(...prices);
+    const maxP = Math.max(...prices);
+
+    // Update legend
+    document.getElementById('map-legend').style.display = 'block';
+    document.getElementById('leg-min').textContent = `€${minP.toFixed(3)}`;
+    document.getElementById('leg-max').textContent = `€${maxP.toFixed(3)}`;
+
+    // Last update
+    if (stations[0]?.recorded_at) {
+        document.getElementById('last-update').textContent =
+            `DB: ${stations[0].recorded_at.substring(11,16)} UTC`;
+    }
+
+    // Draw all markers
+    stations.forEach((s, idx) => {
+        if (!s.amount) return;
+        const color = priceColor(s.amount, minP, maxP);
+        const isTop5 = idx < 5;
+
+        const marker = L.circleMarker([s.latitude, s.longitude], {
+            radius:      isTop5 ? 7 : 5,
+            fillColor:   color,
+            color:       isTop5 ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.15)',
+            weight:      isTop5 ? 1.5 : 1,
+            fillOpacity: 1
+        }).addTo(map);
+
+        marker.on('click', () => openDossier(s));
+        marker.on('mouseover', () => marker.setStyle({ radius: marker.options.radius + 2, weight: 2, color: 'rgba(255,255,255,0.9)' }));
+        marker.on('mouseout',  () => marker.setStyle({ radius: isTop5 ? 7 : 5, weight: isTop5 ? 1.5 : 1, color: isTop5 ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.15)' }));
+
+        allMarkers[s.id] = { marker, data: s };
+    });
+
+    // Update sidebar top 5
+    updateSidebar(stations.slice(0, 5), minP, maxP);
+    document.getElementById('visible-count').textContent = `TOP 5 IM BLICKFELD`;
+    document.getElementById('visible-sub').textContent = `${stations.length} tankstellen gefunden`;
+}
+
+// ── SIDEBAR ───────────────────────────────────────────────────────────────────
+function updateSidebar(top5, minP, maxP) {
+    const list = document.getElementById('station-list');
+    list.innerHTML = '';
+
+    top5.forEach((s, idx) => {
+        const color = priceColor(s.amount, minP, maxP);
+        const card = document.createElement('div');
+        card.className = 'cam-card';
+        card.dataset.id = s.id;
+        card.innerHTML = `
+            <div class="rank-badge">#${idx + 1}</div>
+            <span class="price-text" style="color:${color}">€ ${s.amount.toFixed(3)}</span>
+            <div class="cam-label">
+                <strong>${s.name}</strong>
+                <span>${s.address}, ${s.city}</span>
+            </div>
+        `;
+
+        // Hover → draw connector line to map marker
+        card.addEventListener('mouseenter', () => drawConnector(s.id));
+        card.addEventListener('mouseleave', clearConnector);
+        card.addEventListener('click', () => {
+            map.setView([s.latitude, s.longitude], 15);
+            openDossier(s);
+        });
+
+        list.appendChild(card);
+    });
+}
+
+// ── CONNECTOR LINE (Palantir-style) ───────────────────────────────────────────
+const cvs = document.getElementById('connector-canvas');
+const ctx2d = cvs.getContext('2d');
+
+function resizeCanvas() {
+    cvs.width  = window.innerWidth;
+    cvs.height = window.innerHeight;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+function drawConnector(stationId) {
+    clearConnector();
+    hoveredCardId = stationId;
+    const entry = allMarkers[stationId];
+    if (!entry) return;
+
+    const mapPt = map.latLngToContainerPoint([entry.data.latitude, entry.data.longitude]);
+    const mapEl = document.getElementById('map');
+    const mapRect = mapEl.getBoundingClientRect();
+    const sx = mapRect.left + mapPt.x;
+    const sy = mapRect.top  + mapPt.y;
+
+    // Card position
+    const card = document.querySelector(`.cam-card[data-id="${stationId}"]`);
+    if (!card) return;
+    const cRect = card.getBoundingClientRect();
+    const ex = cRect.left;
+    const ey = cRect.top + cRect.height / 2;
+
+    ctx2d.clearRect(0, 0, cvs.width, cvs.height);
+    ctx2d.beginPath();
+    ctx2d.moveTo(sx, sy);
+    // Bezier for elegance
+    ctx2d.bezierCurveTo(
+        sx + (ex - sx) * 0.6, sy,
+        ex - (ex - sx) * 0.2, ey,
+        ex, ey
+    );
+    ctx2d.strokeStyle = 'rgba(41,121,255,0.6)';
+    ctx2d.lineWidth = 1.5;
+    ctx2d.setLineDash([4, 3]);
+    ctx2d.stroke();
+
+    // Dot on map
+    ctx2d.beginPath();
+    ctx2d.arc(sx, sy, 5, 0, Math.PI * 2);
+    ctx2d.fillStyle = 'rgba(41,121,255,0.9)';
+    ctx2d.fill();
+}
+
+function clearConnector() {
+    ctx2d.clearRect(0, 0, cvs.width, cvs.height);
+    hoveredCardId = null;
+}
+
+// Redraw connector on map move (so line follows)
+map.on('move zoom', () => {
+    if (hoveredCardId) drawConnector(hoveredCardId);
+});
+
+// ── MODAL / DOSSIER ───────────────────────────────────────────────────────────
+async function openDossier(s) {
+    currentStation = s;
+    currentPeriod  = '24h';
+
+    document.getElementById('modal').style.display = 'flex';
+    document.getElementById('d-id').textContent    = `NODE ID: ${s.id}`;
+    document.getElementById('d-title').textContent = s.name;
+
+    const fuel  = document.getElementById('fuelSelect').selectedOptions[0].text;
+    const price = s.amount ? `€ ${s.amount.toFixed(3)}` : '—';
+
+    document.getElementById('link-google').href = `https://www.google.com/maps/dir/?api=1&destination=${s.latitude},${s.longitude}`;
+    document.getElementById('link-apple').href  = `http://maps.apple.com/?daddr=${s.latitude},${s.longitude}`;
+
+    const rows = [
+        ['COMMODITY',   fuel],
+        ['PREIS',       price],
+        ['ADRESSE',     s.address],
+        ['ORT',         `${s.postal_code} ${s.city}`],
+        ['KOORDINATEN', `${s.latitude?.toFixed(5)}, ${s.longitude?.toFixed(5)}`],
+        ['TELEFON',     s.telephone || '—'],
+        ['WEBSITE',     s.website   || '—'],
+    ];
+    document.getElementById('d-table').innerHTML = rows
+        .map(([k, v]) => `<div class="d-row"><span class="d-key">${k}</span><span class="d-val">${v}</span></div>`)
+        .join('');
+
+    // Reset tab UI
+    document.querySelectorAll('.chart-tab').forEach(t => t.classList.remove('active'));
+    document.querySelector('.chart-tab').classList.add('active');
+
+    await loadChart('24h');
+}
+
+function closeModal() {
+    document.getElementById('modal').style.display = 'none';
+    if (activeChart) { activeChart.destroy(); activeChart = null; }
+}
+
+async function switchPeriod(period, btn) {
+    document.querySelectorAll('.chart-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    currentPeriod = period;
+    await loadChart(period);
+}
+
+async function loadChart(period) {
+    if (!currentStation) return;
+    const fuel = document.getElementById('fuelSelect').value;
+    const params = new URLSearchParams({
+        station_id: currentStation.id,
+        fuel,
+        period
+    });
+
+    let history = [];
+    try {
+        const r = await fetch(`${API}/api/history?${params}`);
+        history = await r.json();
+    } catch(e) {}
+
+    if (activeChart) { activeChart.destroy(); activeChart = null; }
+
+    const labels = history.map(h => h.bucket);
+    const avgs   = history.map(h => h.avg_price);
+    const mins   = history.map(h => h.min_price);
+    const maxs   = history.map(h => h.max_price);
+
+    const canvas = document.getElementById('price-chart');
+    activeChart = new Chart(canvas, {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [
+                {
+                    label: 'AVG',
+                    data: avgs,
+                    borderColor: '#2979ff',
+                    backgroundColor: 'rgba(41,121,255,0.08)',
+                    tension: 0.3,
+                    pointRadius: 2,
+                    fill: true,
+                    borderWidth: 2,
+                },
+                {
+                    label: 'MIN',
+                    data: mins,
+                    borderColor: '#00e676',
+                    tension: 0.3,
+                    pointRadius: 0,
+                    borderWidth: 1,
+                    borderDash: [3,3],
+                },
+                {
+                    label: 'MAX',
+                    data: maxs,
+                    borderColor: '#ff3b30',
+                    tension: 0.3,
+                    pointRadius: 0,
+                    borderWidth: 1,
+                    borderDash: [3,3],
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 300 },
+            plugins: {
+                legend: {
+                    labels: {
+                        color: '#555',
+                        font: { family: 'IBM Plex Mono', size: 9 },
+                        boxWidth: 20,
+                    }
+                },
+                tooltip: {
+                    backgroundColor: '#111',
+                    borderColor: '#222',
+                    borderWidth: 1,
+                    titleColor: '#2979ff',
+                    bodyColor: '#e8e8e8',
+                    titleFont: { family: 'IBM Plex Mono', size: 10 },
+                    bodyFont:  { family: 'IBM Plex Mono', size: 10 },
+                    callbacks: {
+                        label: ctx => `${ctx.dataset.label}: €${ctx.parsed.y?.toFixed(3) ?? '—'}`
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    ticks: {
+                        color: '#444',
+                        font: { family: 'IBM Plex Mono', size: 8 },
+                        maxTicksLimit: 8,
+                    },
+                    grid: { color: 'rgba(255,255,255,0.04)' }
+                },
+                y: {
+                    ticks: {
+                        color: '#444',
+                        font: { family: 'IBM Plex Mono', size: 9 },
+                        callback: v => `€${v.toFixed(3)}`
+                    },
+                    grid: { color: 'rgba(255,255,255,0.04)' }
+                }
+            }
+        }
+    });
+
+    if (history.length === 0) {
+        // Show "no data" message on chart area
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#333';
+        ctx.font = '11px IBM Plex Mono';
+        ctx.textAlign = 'center';
+        ctx.fillText('KEINE HISTORISCHEN DATEN', canvas.width/2, canvas.height/2);
+    }
+}
+
+// ── MAP EVENTS ────────────────────────────────────────────────────────────────
+let moveTimer = null;
+map.on('moveend zoomend', () => {
+    clearTimeout(moveTimer);
+    moveTimer = setTimeout(loadVisibleStations, 300);
+});
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+loadVisibleStations();
+</script>
+</body>
+</html>
