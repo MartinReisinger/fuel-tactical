@@ -6,6 +6,13 @@ Ein einfaches Dashboard zur Visualisierung von Treibstoffpreisen in Österreich 
 ![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)
 ![Flask](https://img.shields.io/badge/Framework-Flask-lightgrey.svg)
 
+## 🌐 Live Demo
+Das Dashboard ist unter folgender Adresse öffentlich erreichbar:
+
+**[Working Demo: Fuel Tactical Österreich](http://212.227.93.118:5005/)**
+
+> **Hinweis:** Da dies ein privates Hobbyprojekt auf einem ressourcenschonenden (IONOS) VPS ist, kann es bei hoher Last zu kurzen Verzögerungen kommen.
+
 ## Projektstruktur
 
 ```text
