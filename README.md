@@ -11,7 +11,7 @@ Das Dashboard ist unter folgender Adresse öffentlich erreichbar:
 
 **[Working Demo: Fuel Tactical Österreich](http://212.227.93.118:5005/)**
 
-> **Hinweis:** Da dies ein privates Hobbyprojekt auf einem ressourcenschonenden VPS ist, kann es bei hoher Last zu kurzen Verzögerungen kommen. Die Daten werden in Echtzeit von der E-Control API bezogen.
+> **Hinweis:** Da dies ein privates Hobbyprojekt auf einem ressourcenschonenden (IONOS) VPS ist, kann es bei hoher Last zu kurzen Verzögerungen kommen.
 
 ## Projektstruktur
 
