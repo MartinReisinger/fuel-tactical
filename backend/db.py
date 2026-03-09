@@ -101,10 +101,10 @@ def get_price_history(station_id: int, fuel_type: str, period: str):
     Returns averaged prices bucketed per hour/day/week.
     """
     bucket_map = {
-        '24h':  ("strftime('%Y-%m-%d %H:00', recorded_at)", "-1 day"),
-        '7d':   ("strftime('%Y-%m-%d %H:00', recorded_at)", "-7 days"),
-        '30d':  ("strftime('%Y-%m-%d', recorded_at)",        "-30 days"),
-        '365d': ("strftime('%Y-W%W', recorded_at)",          "-365 days"),
+        '24h': ("strftime('%Y-%m-%d %H:00', recorded_at)", "-1 day"),
+        '7d': ("strftime('%Y-%m-%d %H:00', recorded_at)", "-7 days"),
+        '30d': ("strftime('%Y-%m-%d', recorded_at)", "-30 days"),
+        '365d': ("strftime('%Y-%m-%d', recorded_at)", "-365 days"),  # <--- Hier geändert
     }
     bucket_expr, interval = bucket_map.get(period, bucket_map['24h'])
     sql = f"""
@@ -123,3 +123,10 @@ def get_price_history(station_id: int, fuel_type: str, period: str):
     with get_conn() as conn:
         rows = conn.execute(sql, (station_id, fuel_type, interval)).fetchall()
     return [dict(r) for r in rows]
+
+def cleanup_old_prices(days=365):
+    """Löscht Preise, die älter als X Tage sind, um die DB klein zu halten."""
+    with get_conn() as conn:
+        cursor = conn.execute(f"DELETE FROM prices WHERE recorded_at < datetime('now', '-{days} days')")
+        deleted = cursor.rowcount
+        print(f"[DB] Cleanup: {deleted} alte Preise gelöscht.")
