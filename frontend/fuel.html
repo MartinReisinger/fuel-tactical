@@ -611,6 +611,8 @@ async function loadChart(period) {
                     grid: { color: 'rgba(255,255,255,0.04)' }
                 },
                 y: {
+                    min: 1.0,  // Fixes Minimum bei 1.000 €
+                    max: 3.0,  // Fixes Maximum bei 3.000 €
                     ticks: {
                         color: '#444',
                         font: { family: 'IBM Plex Mono', size: 9 },
@@ -636,7 +638,7 @@ async function loadChart(period) {
 let moveTimer = null;
 map.on('moveend zoomend', () => {
     clearTimeout(moveTimer);
-    moveTimer = setTimeout(loadVisibleStations, 300);
+    moveTimer = setTimeout(loadVisibleStations, 1000); // <-- HIER
 });
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
