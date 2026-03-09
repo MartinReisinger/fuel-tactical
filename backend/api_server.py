@@ -29,8 +29,10 @@ def index():
 def stations():
     fuel = request.args.get('fuel', 'SUP').upper()
 
-    bounds = None
+    # 1. Koordinaten abgreifen (Mitte für Live-Scan, Bounding-Box für DB-Laden)
     try:
+        lat = float(request.args['lat'])
+        lon = float(request.args['lon'])
         bounds = {
             'lat_min': float(request.args['lat_min']),
             'lat_max': float(request.args['lat_max']),
@@ -38,10 +40,38 @@ def stations():
             'lon_max': float(request.args['lon_max']),
         }
     except (KeyError, ValueError):
-        pass  # no bounds → return all
+        return jsonify({'error': 'Missing coordinates'}), 400
 
-    rows = get_latest_prices(fuel, bounds)
-    return jsonify(rows)
+    # 2. LIVE-ABFRAGE BEI E-CONTROL (Der "Radar-Ping" in der Mitte)
+    url = "https://api.e-control.at/sprit/1.0/search/gas-stations/by-address"
+    try:
+        r = requests.get(url, params={"latitude": lat, "longitude": lon, "fuelType": fuel, "includeClosed": "false"},
+                         headers={"User-Agent": "FuelTactical/1.0"}, timeout=5)
+        if r.status_code == 200:
+            now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+            # Frische Daten sofort in die DB schreiben
+            for s in r.json():
+                upsert_station({
+                    "id": s["id"], "name": s.get("name", ""),
+                    "address": s.get("location", {}).get("address", ""),
+                    "city": s.get("location", {}).get("city", ""),
+                    "postal_code": s.get("location", {}).get("postalCode", ""),
+                    "latitude": s.get("location", {}).get("latitude", 0),
+                    "longitude": s.get("location", {}).get("longitude", 0),
+                    "telephone": s.get("contact", {}).get("telephone", ""),
+                    "website": s.get("contact", {}).get("website", ""),
+                })
+                for p in s.get("prices", []):
+                    if p.get("fuelType") == fuel:
+                        insert_price(s["id"], fuel, p.get("amount"), now)
+                        break
+    except Exception as e:
+        log.error(f"Live-Update fehlgeschlagen: {e}")
+
+    # 3. ALLE DATEN AUS DER DB HOLEN (Sichtfeld der Karte)
+    db_stations = get_latest_prices(fuel, bounds)
+
+    return jsonify(db_stations)
 
 
 # ── /api/history ──────────────────────────────────────────────────────────────
