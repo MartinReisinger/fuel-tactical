@@ -68,4 +68,4 @@ def history():
 if __name__ == '__main__':
     init_db()
     logging.basicConfig(level=logging.INFO)
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    app.run(host='0.0.0.0', port=5005, debug=False)

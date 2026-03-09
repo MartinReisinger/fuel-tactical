@@ -46,10 +46,10 @@ pip install -r requirements.txt
 - Beim ersten Start:
   - DB wird in `data/fuel.db` angelegt
   - Sofort ein erster Collection-Run startet (dauert ~30–60s)
-  - Flask läuft auf http://localhost:5000
+  - Flask läuft auf http://localhost:5005
 
 ### 5. Browser öffnen
-→ http://localhost:5000
+→ http://localhost:5005
 
 ---
 

@@ -270,7 +270,9 @@ function priceColor(price, min, max) {
 // ── LOAD STATIONS ─────────────────────────────────────────────────────────────
 async function loadVisibleStations() {
     const fuel = document.getElementById('fuelSelect').value;
+    const zoom = map.getZoom();
     const b = map.getBounds();
+
     const params = new URLSearchParams({
         fuel,
         lat_min: b.getSouth().toFixed(5),
@@ -288,56 +290,71 @@ async function loadVisibleStations() {
         return;
     }
 
-    if (!stations.length) {
-        document.getElementById('visible-count').textContent = 'KEINE DATEN';
-        document.getElementById('visible-sub').textContent = 'Noch keine DB-Einträge';
-        return;
-    }
-
-    // Remove old markers
+    // Alte Marker immer zuerst entfernen, egal welcher Zoom-Level
     Object.values(allMarkers).forEach(({marker}) => map.removeLayer(marker));
     allMarkers = {};
+
+    if (!stations.length) {
+        document.getElementById('visible-count').textContent = 'KEINE DATEN';
+        document.getElementById('visible-sub').textContent = 'Keine Tankstellen in diesem Bereich';
+        document.getElementById('station-list').innerHTML = '';
+        document.getElementById('map-legend').style.display = 'none';
+        return;
+    }
 
     const prices = stations.map(s => s.amount).filter(Boolean);
     const minP = Math.min(...prices);
     const maxP = Math.max(...prices);
 
-    // Update legend
+    // Legend & Update-Time aktualisieren
     document.getElementById('map-legend').style.display = 'block';
     document.getElementById('leg-min').textContent = `€${minP.toFixed(3)}`;
     document.getElementById('leg-max').textContent = `€${maxP.toFixed(3)}`;
 
-    // Last update
     if (stations[0]?.recorded_at) {
         document.getElementById('last-update').textContent =
             `DB: ${stations[0].recorded_at.substring(11,16)} UTC`;
     }
 
-    // Draw all markers
-    stations.forEach((s, idx) => {
-        if (!s.amount) return;
-        const color = priceColor(s.amount, minP, maxP);
-        const isTop5 = idx < 5;
-
-        const marker = L.circleMarker([s.latitude, s.longitude], {
-            radius:      isTop5 ? 7 : 5,
-            fillColor:   color,
-            color:       isTop5 ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.15)',
-            weight:      isTop5 ? 1.5 : 1,
-            fillOpacity: 1
-        }).addTo(map);
-
-        marker.on('click', () => openDossier(s));
-        marker.on('mouseover', () => marker.setStyle({ radius: marker.options.radius + 2, weight: 2, color: 'rgba(255,255,255,0.9)' }));
-        marker.on('mouseout',  () => marker.setStyle({ radius: isTop5 ? 7 : 5, weight: isTop5 ? 1.5 : 1, color: isTop5 ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.15)' }));
-
-        allMarkers[s.id] = { marker, data: s };
-    });
-
-    // Update sidebar top 5
+    // 1. SIDEBAR IMMER BEFÜLLEN (auch wenn rausgezoomt)
     updateSidebar(stations.slice(0, 5), minP, maxP);
-    document.getElementById('visible-count').textContent = `TOP 5 IM BLICKFELD`;
-    document.getElementById('visible-sub').textContent = `${stations.length} tankstellen gefunden`;
+
+    // 2. MARKER NUR BEI GUTEM ZOOM ZEICHNEN
+    // Ab Zoom 9 (oder welchen Wert du bevorzugst) zeichnen wir.
+    if (zoom >= 12) {
+        document.getElementById('visible-count').textContent = `TOP 5 PREISE`;
+        document.getElementById('visible-sub').textContent = `${stations.length} TANKSTELLEN IM BILD`;
+
+        stations.forEach((s, idx) => {
+            if (!s.amount) return;
+            const color = priceColor(s.amount, minP, maxP);
+            const isTop5 = idx < 5;
+
+            const marker = L.circleMarker([s.latitude, s.longitude], {
+                radius:      isTop5 ? 8 : 5,
+                fillColor:   color,
+                color:       isTop5 ? '#ffffff' : 'rgba(255,255,255,0.2)',
+                weight:      isTop5 ? 2 : 1,
+                fillOpacity: 0.9
+            }).addTo(map);
+
+            marker.on('click', () => openDossier(s));
+
+            // Hover-Effekt
+            marker.on('mouseover', () => marker.setStyle({ radius: 10, weight: 3, color: '#fff' }));
+            marker.on('mouseout',  () => marker.setStyle({
+                radius: isTop5 ? 8 : 5,
+                weight: isTop5 ? 2 : 1,
+                color: isTop5 ? '#ffffff' : 'rgba(255,255,255,0.2)'
+            }));
+
+            allMarkers[s.id] = { marker, data: s };
+        });
+    } else {
+        // Wenn man zu weit rausgezoomt ist: Marker weglassen, aber Info anpassen
+        document.getElementById('visible-count').textContent = `TOP 5 (REGION)`;
+        document.getElementById('visible-sub').textContent = `Zoom rein für Marker (${stations.length} gefunden)`;
+    }
 }
 
 // ── SIDEBAR ───────────────────────────────────────────────────────────────────

@@ -51,10 +51,10 @@ if __name__ == "__main__":
 
     scheduler = start_scheduler()
 
-    log.info("[Server] Starting Flask on http://localhost:5000")
+    log.info("[Server] Starting Flask on http://localhost:5005")
     # Flask blocks here — scheduler runs in background threads
     try:
-        app.run(host="0.0.0.0", port=5000, debug=False, use_reloader=False)
+        app.run(host="0.0.0.0", port=5005, debug=False, use_reloader=False)
     except KeyboardInterrupt:
         log.info("[Scheduler] Shutting down...")
         scheduler.shutdown()
