@@ -23,7 +23,6 @@ fuel_tactical/
 └── README.md
 ```
 
-*(Hinweis: Eine separate `collector.py` wird nicht mehr benötigt, da das System nun On-Demand arbeitet).*
 
 ## PyCharm Setup (Schritt für Schritt)
 
@@ -66,9 +65,9 @@ pip install -r requirements.txt
 Das System wurde so konzipiert, dass es die E-Control API maximal schont und zu 100 % konform mit den Nutzungsbedingungen arbeitet.
 
 ### 1. Das On-Demand Radar
-- Wenn du die Karte im Browser bewegst (Fadenkreuz), sendet das Frontend die **exakten Mittelpunkt-Koordinaten** an das Backend (maximal 1 Anfrage pro Sekunde gedrosselt).
+- Wenn du die Karte im Browser bewegst, sendet das Frontend die **Mittelpunkt-Koordinaten** an das Backend (maximal 1 Anfrage pro Sekunde gedrosselt).
 - Das Backend prüft die lokale Datenbank (`fuel.db`).
-- **Smart Cache:** Sind die Daten in diesem Bereich jünger als 60 Minuten, werden sofort die lokalen Daten ans Frontend geschickt. Sind die Daten älter (oder nicht vorhanden), macht das Backend einen "Live-Ping" an die E-Control API, speichert die frischen Preise ab und liefert sie aus.
+- **Cache:** Sind die Daten in diesem Bereich jünger als 60 Minuten, werden sofort die lokalen Daten ans Frontend geschickt. Sind die Daten älter (oder nicht vorhanden), macht das Backend einen "Live-Ping" an die E-Control API, speichert die frischen Preise in der fuel.db datei ab und liefert sie aus.
 
 ### 2. Der Scheduler (Hausmeister-Job)
 - `scheduler.py` startet nicht nur den Webserver, sondern auch einen Hintergrund-Job.
