@@ -714,7 +714,7 @@ async function loadChart(period) {
 let moveTimer = null;
 map.on('moveend zoomend', () => {
     clearTimeout(moveTimer);
-    moveTimer = setTimeout(loadVisibleStations, 1000); // <-- HIER
+    moveTimer = setTimeout(loadVisibleStations, 200);
 });
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
