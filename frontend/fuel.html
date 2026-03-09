@@ -7,8 +7,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script data-goatcounter="https://fuel-tactical.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
     <style>
         :root {
             --accent: #2979ff;
@@ -215,8 +215,13 @@
             <div class="sidebar-sub" id="visible-sub">— bewege die karte —</div>
         </div>
         <div class="station-list" id="station-list"></div>
-        <div style="margin-top: auto; padding-top: 20px; font-family: var(--mono); font-size: 8px; color: var(--text-dim); text-align: center;">
-            DATENQUELLE: E-CONTROL SPRITPREISRECHNER
+        <div style="margin-top: auto; padding-top: 20px; font-family: var(--mono); font-size: 8px; color: var(--text-dim); text-align: center; line-height: 1.6;">
+            <span style="cursor: pointer; text-decoration: underline; letter-spacing: 1px;"
+                  onclick="openImpressum()"
+                  onmouseover="this.style.color='#fff'"
+                  onmouseout="this.style.color='var(--text-dim)'">
+                IMPRESSUM
+            </span>
         </div>
     </div>
 </div>
@@ -258,8 +263,60 @@
     </div>
 </div>
 
+<div id="impressum-modal" onclick="closeImpressum()" style="position: fixed; inset: 0; background: rgba(0,0,0,0.88); z-index: 2000; display: none; justify-content: center; align-items: center; backdrop-filter: blur(8px);">
+    <div onclick="event.stopPropagation()" style="width: 90vw; max-width: 450px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 28px; font-family: var(--mono);">
+
+        <div style="font-size: 16px; font-weight: 600; margin-bottom: 20px; color: #fff;">Impressum</div>
+
+        <div style="font-size: 11px; color: var(--text); line-height: 1.8; text-align: left;">
+
+            <strong>Betreiber</strong><br>
+            Martin Reisinger<br>
+            Linz, Österreich<br>
+            <a href="mailto:rezepte.home.web@gmail.com" style="color: var(--accent); text-decoration: none;">
+                rezepte.home.web@gmail.com
+            </a><br><br>
+
+            <strong>Was ist das hier?</strong><br>
+            Ein privates Hobbyprojekt – keine Werbung, kein Abo, kein Gewinn.
+            Die Spritpreise kommen direkt von der offiziellen
+            <a href="https://api.e-control.at/sprit/1.0/doc/index.html?url=https://api.e-control.at/sprit/1.0/api-docs%3Fgroup%3Dpublic-api"
+               target="_blank" style="color: var(--accent); text-decoration: none;">
+                E-Control API ↗
+            </a>.<br><br>
+
+            <strong>Datenschutz</strong><br>
+            Zur Analyse der Nutzung verwende ich das datenschutzfreundliche Tool
+            <a href="https://www.goatcounter.com" target="_blank" style="color: var(--accent); text-decoration: none;">GoatCounter</a>.
+            Es werden keine Cookies gesetzt und keine personenbezogenen Daten gespeichert.<br><br>
+
+
+            <strong>Quellcode</strong><br>
+            <a href="https://github.com/DEIN-USER/fuel-tactical"
+               target="_blank" style="color: var(--accent); text-decoration: none;">
+                GitHub ↗
+            </a><br><br>
+
+            <span style="font-size: 9px; color: var(--text-dim);">
+                Offenlegung gem. § 25 MedienG. Privates, nicht-kommerzielles Informationsangebot.
+            </span>
+        </div>
+
+        <button class="btn btn-secondary" onclick="closeImpressum()" style="width: 100%; margin-top: 24px;">CLOSE</button>
+    </div>
+</div>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
+// ── IMPRESSUM MODAL ──────────────────────────────────────────────────────────
+function openImpressum() {
+    document.getElementById('impressum-modal').style.display = 'flex';
+}
+
+function closeImpressum() {
+    document.getElementById('impressum-modal').style.display = 'none';
+}
+
 // ── CONFIG ────────────────────────────────────────────────────────────────────
 const API = '';   // same origin via Flask; empty = relative URLs
 
