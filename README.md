@@ -1,109 +1,47 @@
-# Fuel Tactical — Setup Guide
+# ⛽ Fuel Tactical — Austria Edition
 
-Ein responsives, kartenbasiertes Dashboard zur Visualisierung der aktuell günstigsten Treibstoffpreise in Österreich, basierend auf der E-Control API. 
+**Fuel Tactical** ist ein hochperformantes, kartenbasiertes Dashboard zur Visualisierung von Treibstoffpreisen in Österreich in Echtzeit. Die Anwendung kombiniert ein modernes "Mobile-First" Frontend mit einem intelligenten Backend-Caching-System, um die offizielle **E-Control API** effizient und konform zu nutzen.
 
-## Projektstruktur
+![License](https://img.shields.io/badge/License-MIT-green.svg)
+![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)
+![Flask](https://img.shields.io/badge/Framework-Flask-lightgrey.svg)
+
+---
+
+## 🚀 Key Features
+
+*   **On-Demand Radar:** Lädt Daten dynamisch basierend auf deinem Kartenausschnitt. Bewege das Fadenkreuz, und das System holt automatisch die aktuellsten Preise.
+*   **Smart Cache (60 Min):** Schont die API-Ressourcen der E-Control. Daten im selben Sektor werden nur aktualisiert, wenn sie älter als eine Stunde sind.
+*   **Intelligentes Dossier:** Detaillierte Ansicht jeder Tankstelle inklusive:
+    *   **Stufen-Graphen (Chart.js):** Realitätsnahe Preisverläufe (24h bis 1 Jahr), die Preissprünge als Treppen darstellen.
+    *   **Direkt-Kontakt:** Klickbare Telefonnummern und Webseiten für mobile Nutzer.
+*   **Palantir-Style UI:** Hover-Effekte mit Verbindungslinien zwischen Liste und Karten-Marker für maximale Übersicht.
+*   **Auto-Maintenance:** Ein integrierter Scheduler bereinigt die SQLite-Datenbank jede Nacht um 03:00 Uhr von Daten, die älter als 365 Tage sind.
+*   **Responsive Design:** Nahtloser Wechsel zwischen Desktop-Sidebar und mobilem Bottom-Sheet.
+
+---
+
+## 🛠 Tech Stack
+
+*   **Backend:** Python 3.10+, Flask, Flask-CORS, APScheduler
+*   **Datenbank:** SQLite (mit automatischer Bereinigungslogik)
+*   **Frontend:** HTML5, CSS3 (Modern Flex/Grid), Vanilla JavaScript
+*   **Maps & Charts:** Leaflet.js, Chart.js
+*   **Datenquelle:** Offizielle REST-API der [E-Control Österreich](https://www.e-control.at/)
+
+---
+
+## 📁 Projektstruktur
 
 ```text
 fuel_tactical/
 ├── backend/
-│   ├── __init__.py
-│   ├── db.py           # SQLite Datenbanklogik & Auto-Cleanup
-│   └── api_server.py   # Flask REST API (Smart Cache & Live-Ping)
+│   ├── db.py           # SQLite Datenbank & Auto-Cleanup Logik
+│   └── api_server.py   # Flask REST API (Caching & Proxy)
 ├── frontend/
-│   └── fuel.html       # Das interaktive Frontend (Mobile-First)
+│   └── fuel.html       # Interaktives UI (Single-Page-App)
 ├── data/
-│   └── fuel.db         # Wird automatisch beim Start erstellt
-├── scheduler.py        # Einstiegspunkt — Startet Server & Hausmeister-Job
-├── requirements.txt
+│   └── fuel.db         # Persistente Speicherung (wird auto-generiert)
+├── scheduler.py        # Main Entry Point (Server + Hausmeister-Job)
+├── requirements.txt    # Abhängigkeiten
 └── README.md
-```
-
-*(Hinweis: Eine separate `collector.py` wird nicht mehr benötigt, da das System nun On-Demand arbeitet).*
-
-## PyCharm Setup (Schritt für Schritt)
-
-### 1. Projekt anlegen
-- PyCharm öffnen → **New Project**
-- Location: `fuel_tactical` (oder beliebiger Pfad)
-- **New environment using: Virtualenv** (empfohlen)
-- Python version: 3.10+ empfohlen
-- → **Create**
-
-### 2. Abhängigkeiten installieren
-Öffne das **Terminal** in PyCharm (unten) und führe aus:
-
-```bash
-pip install -r requirements.txt
-```
-*(Stelle sicher, dass `Flask`, `flask-cors`, `requests` und `APScheduler` in der Datei stehen).*
-
-### 3. Run Configuration anlegen
-- Oben rechts: **Add Configuration** → **+** → **Python**
-- Name: `Fuel Tactical`
-- Script path: `scheduler.py` (aus dem Projektroot)
-- Working directory: `<dein Projektpfad>/fuel_tactical`
-- → **OK**
-
-### 4. Starten
-- Auf den grünen **Play-Button** klicken.
-- Beim ersten Start:
-  - Die Datenbank wird in `data/fuel.db` angelegt.
-  - Flask startet sofort auf `http://localhost:5005`.
-  - Der Scheduler plant den nächtlichen DB-Cleanup für 03:00 Uhr.
-
-### 5. Browser öffnen
-→ http://localhost:5005
-
----
-
-## Wie es funktioniert (Live-Radar & Smart Cache)
-
-Das System wurde so konzipiert, dass es die E-Control API maximal schont und zu 100 % konform mit den Nutzungsbedingungen arbeitet.
-
-### 1. Das On-Demand Radar
-- Wenn du die Karte im Browser bewegst (Fadenkreuz), sendet das Frontend die **exakten Mittelpunkt-Koordinaten** an das Backend (maximal 1 Anfrage pro Sekunde gedrosselt).
-- Das Backend prüft die lokale Datenbank (`fuel.db`).
-- **Smart Cache:** Sind die Daten in diesem Bereich jünger als 60 Minuten, werden sofort die lokalen Daten ans Frontend geschickt. Sind die Daten älter (oder nicht vorhanden), macht das Backend einen "Live-Ping" an die E-Control API, speichert die frischen Preise ab und liefert sie aus.
-
-### 2. Der Scheduler (Hausmeister-Job)
-- `scheduler.py` startet nicht nur den Webserver, sondern auch einen Hintergrund-Job.
-- Jeden Tag um **03:00 Uhr nachts** wird die Datenbank bereinigt. Alle historischen Preise, die älter als 365 Tage sind, werden gelöscht, damit die Datenbank über die Jahre nicht zu groß wird.
-
-### 3. Frontend & UI
-- **Responsive:** Auf dem Desktop gibt es eine rechte Sidebar. Auf mobilen Geräten (Smartphones) wandert die Liste als "Bottom-Sheet" an den unteren Bildschirmrand.
-- **Top 5:** Zeigt immer die 5 günstigsten Tankstellen im aktuellen Kartenausschnitt.
-- **Interaktiv:** Ein Hover über die Liste zeichnet eine "Palantir-Style" Verbindungslinie zur Tankstelle auf der Karte.
-- **Dossier:** Ein Klick öffnet ein Modal mit exakten Adressdaten, klickbarer Telefonnummer/Website und einem Chart.js Preisverlauf (24h / 7 Tage / Monat / Jahr), der Preissprünge realitätsnah als Stufen-Graph ("Treppen") darstellt.
-
----
-
-## API Endpoints
-
-**1. Live-Radar & Stationsabruf**
-```http
-GET /api/stations?fuel=SUP&lat=48.32&lon=14.28&lat_min=48.2&lat_max=48.4&lon_min=14.1&lon_max=14.4
-```
-
-**2. Historischer Preisverlauf (Dossier)**
-```http
-GET /api/history?station_id=1234&fuel=SUP&period=24h
-```
-
----
-
-## Erste Schritte / Kein Daten-Setup nötig
-Da das System "On-Demand" funktioniert, ist die Karte beim allerersten Start (und leerer Datenbank) zunächst leer. **Bewege einfach die Karte an den gewünschten Ort.** Das System holt sich die Daten für den anvisierten Bereich automatisch im Hintergrund und die Karte füllt sich in Echtzeit!
-
----
-
-## Optional: Als Dienst starten (immer im Hintergrund)
-
-### Windows (Task Scheduler)
-Aufgabe anlegen, die `python scheduler.py` beim Systemstart/Login ausführt.
-
-### macOS/Linux (systemd oder launchd)
-```bash
-# Simpelste Lösung (Terminal läuft im Hintergrund weiter):
-nohup python scheduler.py > fuel.log 2>&1 &
-```
