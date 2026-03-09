@@ -163,6 +163,26 @@
             margin: 6px 0 4px;
         }
         .legend-labels { display: flex; justify-content: space-between; }
+
+        /* ── MOBILE RESPONSIVENESS ── */
+        @media (max-width: 768px) {
+            #layout { flex-direction: column; }
+            #map { flex: 1; }
+            #sidebar {
+                width: 100%;
+                height: 40vh;
+                border-left: none;
+                border-top: 1px solid var(--border);
+                padding: 10px;
+            }
+            .nav-group span { display: none; }
+            .last-update { display: none; }
+            .legend { bottom: calc(40vh + 14px); }
+            .cam-card { padding: 10px; }
+            .d-footer { flex-wrap: wrap; }
+            .btn { width: 100%; flex: none; margin-bottom: 6px; }
+            .btn:last-child { margin-bottom: 0; }
+        }
     </style>
 </head>
 <body>
@@ -196,7 +216,6 @@
     </div>
 </div>
 
-<!-- Legend -->
 <div class="legend" id="map-legend" style="display:none">
     PREIS-SKALA
     <div class="legend-bar"></div>
@@ -206,7 +225,6 @@
     </div>
 </div>
 
-<!-- Modal -->
 <div id="modal" onclick="closeModal()">
     <div id="dossier" onclick="event.stopPropagation()">
         <div class="d-header">
@@ -271,10 +289,15 @@ function priceColor(price, min, max) {
 async function loadVisibleStations() {
     const fuel = document.getElementById('fuelSelect').value;
     const zoom = map.getZoom();
+
+    // HIER WIRD SOWOHL CENTER ALS AUCH BOUNDS ERMITTELT
+    const center = map.getCenter();
     const b = map.getBounds();
 
     const params = new URLSearchParams({
-        fuel,
+        fuel: fuel,
+        lat: center.lat.toFixed(5),
+        lon: center.lng.toFixed(5),
         lat_min: b.getSouth().toFixed(5),
         lat_max: b.getNorth().toFixed(5),
         lon_min: b.getWest().toFixed(5),
@@ -320,7 +343,6 @@ async function loadVisibleStations() {
     updateSidebar(stations.slice(0, 5), minP, maxP);
 
     // 2. MARKER NUR BEI GUTEM ZOOM ZEICHNEN
-    // Ab Zoom 9 (oder welchen Wert du bevorzugst) zeichnen wir.
     if (zoom >= 8) {
         document.getElementById('visible-count').textContent = `TOP 5 PREISE`;
         document.getElementById('visible-sub').textContent = `${stations.length} TANKSTELLEN IM BILD`;
