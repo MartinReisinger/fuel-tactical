@@ -2,201 +2,80 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>Fuel Tactical</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fuel Tactical – Spritpreise Österreich vergleichen</title>
+
+    <!-- ── SEO: Primary ──────────────────────────────────────────────────────── -->
+    <meta name="description"
+          content="Günstige Spritpreise in Österreich finden. Benzin, Diesel und CNG live vergleichen – interaktive Karte mit aktuellen E-Control Preisdaten.">
+    <meta name="keywords"
+          content="Spritpreise Österreich, Benzinpreise, Dieselpreise, Tankstellen günstig, Super 95, E-Control Sprit, Sprit vergleichen, Fuel Tactical">
+    <meta name="author" content="Martin Reisinger">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://fuel-tactical.site/">
+
+    <!-- ── SEO: Open Graph ───────────────────────────────────────────────────── -->
+    <meta property="og:type"        content="website">
+    <meta property="og:url"         content="https://fuel-tactical.site/">
+    <meta property="og:title"       content="Fuel Tactical – Spritpreise Österreich vergleichen">
+    <meta property="og:description" content="Günstige Tankstellen in Österreich finden. Live-Preise von E-Control auf einer interaktiven Karte.">
+    <meta property="og:locale"      content="de_AT">
+    <meta property="og:locale:alternate" content="en_GB">
+
+    <!-- ── SEO: Twitter Card ─────────────────────────────────────────────────── -->
+    <meta name="twitter:card"        content="summary">
+    <meta name="twitter:title"       content="Fuel Tactical – Spritpreise Österreich">
+    <meta name="twitter:description" content="Günstige Tankstellen live auf der Karte. Benzin & Diesel in Österreich vergleichen.">
+
+    <!-- ── SEO: Structured Data (JSON-LD) ────────────────────────────────────── -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Fuel Tactical",
+        "url": "https://fuel-tactical.site/",
+        "description": "Interaktive Karte zum Vergleich von Spritpreisen (Benzin, Diesel, CNG) in Österreich auf Basis der E-Control API.",
+        "applicationCategory": "UtilityApplication",
+        "operatingSystem": "Any",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
+        "author": {
+            "@type": "Person",
+            "name": "Martin Reisinger",
+            "address": { "@type": "PostalAddress", "addressCountry": "AT", "addressLocality": "Linz" }
+        },
+        "inLanguage": ["de-AT", "en"]
+    }
+    </script>
+
+    <!-- ── Fonts & external CSS ──────────────────────────────────────────────── -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="css/style.css">
+
+    <!-- Analytics (GoatCounter – cookieless) -->
     <script data-goatcounter="https://fuel-tactical.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
-    <style>
-        :root {
-            --accent: #2979ff;
-            --bg: #080808;
-            --surface: #0f0f0f;
-            --border: rgba(255,255,255,0.07);
-            --text: #e8e8e8;
-            --text-dim: #555;
-            --danger: #ff3b30;
-            --success: #00e676;
-            --mono: 'IBM Plex Mono', monospace;
-            --sans: 'IBM Plex Sans', sans-serif;
-            --sidebar: 300px;
-            --header: 48px;
-        }
-
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        body, html { height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); overflow: hidden; }
-
-        /* HEADER */
-        header {
-            position: fixed; top: 0; left: 0; right: 0;
-            height: var(--header); z-index: 100;
-            background: rgba(8,8,8,0.92);
-            backdrop-filter: blur(12px);
-            border-bottom: 1px solid var(--border);
-            display: flex; align-items: center;
-            padding: 0 20px; gap: 0;
-        }
-        .brand { font-family: var(--mono); font-size: 13px; font-weight: 600; letter-spacing: 3px; display: flex; align-items: center; gap: 12px; }
-        .brand span { color: var(--accent); }
-        .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); box-shadow: 0 0 8px var(--success); animation: pulse 2s ease-in-out infinite; }
-        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
-        .header-spacer { flex: 1; }
-        .nav-group { display: flex; align-items: center; gap: 10px; margin-left: 20px; }
-        .nav-group span { font-family: var(--mono); font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; }
-        select {
-            background: transparent; border: 1px solid var(--border);
-            color: var(--text); font-family: var(--mono); font-size: 11px;
-            padding: 6px 10px; border-radius: 4px; outline: none; transition: .2s; cursor: pointer;
-        }
-        select:hover { border-color: var(--accent); }
-        option { background: #111; color: var(--text); }
-        .last-update { font-family: var(--mono); font-size: 9px; color: var(--text-dim); letter-spacing: 1px; margin-left: 20px; }
-
-        /* LAYOUT */
-        #layout { position: fixed; top: var(--header); left: 0; right: 0; bottom: 0; display: flex; }
-        #map { flex: 1; background: #080808; }
-
-        /* SIDEBAR */
-        #sidebar {
-            width: var(--sidebar);
-            background: var(--surface);
-            border-left: 1px solid var(--border);
-            display: flex; flex-direction: column;
-            padding: 14px; gap: 12px;
-            flex-shrink: 0;
-        }
-        .sidebar-header {
-            font-family: var(--mono); font-size: 10px;
-            color: var(--text-dim); letter-spacing: 2px;
-            padding-bottom: 10px; border-bottom: 1px solid var(--border);
-        }
-        .sidebar-sub { font-family: var(--mono); font-size: 9px; color: var(--text-dim); letter-spacing: 1px; margin-top: 2px; }
-        .station-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 2px; }
-        .station-list::-webkit-scrollbar { width: 3px; }
-        .station-list::-webkit-scrollbar-thumb { background: var(--border); }
-
-        .cam-card {
-            border: 1px solid var(--border); background: #000;
-            border-radius: 6px; padding: 14px 12px; cursor: pointer;
-            transition: border-color .15s, box-shadow .15s;
-            position: relative; flex-shrink: 0;
-        }
-        .cam-card:hover { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
-        .cam-card.active { border-color: var(--success); box-shadow: 0 0 0 1px var(--success); }
-        .rank-badge {
-            position: absolute; top: 10px; right: 10px;
-            font-family: var(--mono); font-size: 9px; color: var(--text-dim);
-            letter-spacing: 1px;
-        }
-        .price-text { font-family: var(--mono); font-size: 18px; font-weight: 600; display: block; margin-bottom: 8px; }
-        .cam-label strong { display: block; font-size: 11px; color: #fff; margin-bottom: 3px; text-transform: uppercase; }
-        .cam-label span { font-size: 9px; font-family: var(--mono); color: var(--text-dim); text-transform: uppercase; }
-
-        /* Connector line canvas */
-        #connector-canvas {
-            position: fixed; top: 0; left: 0;
-            width: 100%; height: 100%;
-            pointer-events: none; z-index: 99;
-        }
-
-        /* MODAL */
-        #modal {
-            position: fixed; inset: 0;
-            background: rgba(0,0,0,0.88); z-index: 1000;
-            display: none; justify-content: center; align-items: center;
-            backdrop-filter: blur(8px);
-        }
-        #dossier {
-            width: 92vw; max-width: 680px; max-height: 90vh;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            display: flex; flex-direction: column;
-            overflow: hidden;
-        }
-        .d-header { padding: 24px 28px 0; flex-shrink: 0; }
-        .d-id { font-family: var(--mono); font-size: 10px; color: var(--accent); letter-spacing: 2px; margin-bottom: 6px; }
-        .d-title { font-size: 16px; font-weight: 600; text-transform: uppercase; margin-bottom: 16px; }
-        .d-body { flex: 1; overflow-y: auto; padding: 0 28px 24px; }
-        .d-body::-webkit-scrollbar { width: 3px; }
-        .d-body::-webkit-scrollbar-thumb { background: var(--border); }
-
-        .d-table { display: flex; flex-direction: column; margin-bottom: 20px; }
-        .d-row { display: flex; align-items: baseline; padding: 8px 0; border-bottom: 1px solid var(--border); }
-        .d-row:last-child { border-bottom: none; }
-        .d-key { font-family: var(--mono); font-size: 9px; color: var(--text-dim); letter-spacing: 2px; text-transform: uppercase; width: 40%; flex-shrink: 0; }
-        .d-val { font-family: var(--mono); font-size: 11px; color: var(--text); }
-
-        /* Chart tabs */
-        .chart-section { margin-bottom: 20px; }
-        .chart-tabs { display: flex; gap: 4px; margin-bottom: 14px; }
-        .chart-tab {
-            font-family: var(--mono); font-size: 10px; letter-spacing: 1px;
-            padding: 6px 12px; border: 1px solid var(--border);
-            background: transparent; color: var(--text-dim);
-            border-radius: 3px; cursor: pointer; transition: .15s;
-        }
-        .chart-tab:hover { border-color: var(--accent); color: var(--accent); }
-        .chart-tab.active { border-color: var(--accent); color: var(--accent); background: rgba(41,121,255,0.1); }
-        .chart-wrap { height: 160px; position: relative; }
-
-        .d-footer { padding: 16px 28px; border-top: 1px solid var(--border); display: flex; gap: 8px; flex-shrink: 0; }
-        .btn { flex: 1; padding: 10px; border-radius: 4px; font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 1px; cursor: pointer; transition: filter .2s; text-decoration: none; text-align: center; border: none; }
-        .btn-google { background: #34A853; color: #fff; }
-        .btn-google:hover { filter: brightness(1.15); }
-        .btn-apple { background: #0066CC; color: #fff; }
-        .btn-apple:hover { filter: brightness(1.15); }
-        .btn-secondary { background: transparent; color: var(--text-dim); border: 1px solid var(--border) !important; }
-        .btn-secondary:hover { border-color: #fff !important; color: #fff; }
-
-        /* Color scale legend */
-        .legend {
-            position: absolute; bottom: 30px; left: 14px;
-            background: rgba(8,8,8,0.85); border: 1px solid var(--border);
-            border-radius: 6px; padding: 10px 12px;
-            font-family: var(--mono); font-size: 9px; color: var(--text-dim);
-            z-index: 10; letter-spacing: 1px;
-        }
-        .legend-bar {
-            width: 120px; height: 6px; border-radius: 3px;
-            background: linear-gradient(to right, #00e676, #ffd600, #ff3b30);
-            margin: 6px 0 4px;
-        }
-        .legend-labels { display: flex; justify-content: space-between; }
-
-        /* ── MOBILE RESPONSIVENESS ── */
-        @media (max-width: 768px) {
-            #layout { flex-direction: column; }
-            #map { flex: 1; }
-            #sidebar {
-                width: 100%;
-                height: 40vh;
-                border-left: none;
-                border-top: 1px solid var(--border);
-                padding: 10px;
-            }
-            .nav-group span { display: none; }
-            .last-update { display: none; }
-            .legend { bottom: calc(40vh + 14px); }
-            .cam-card { padding: 10px; }
-            .d-footer { flex-wrap: wrap; }
-            .btn { width: 100%; flex: none; margin-bottom: 6px; }
-            .btn:last-child { margin-bottom: 0; }
-        }
-    </style>
 </head>
 <body>
 
+<!-- ── CONNECTOR CANVAS ─────────────────────────────────────────────────────── -->
 <canvas id="connector-canvas"></canvas>
 
+<!-- ── HEADER ───────────────────────────────────────────────────────────────── -->
 <header>
     <div class="brand">FUEL <span>TACTICAL</span> <div class="status-dot"></div></div>
     <div class="header-spacer"></div>
 
+    <!-- Postcode search -->
+    <div class="plz-group">
+        <input id="plzInput" class="plz-input" type="text" maxlength="10" autocomplete="postal-code">
+        <button id="plz-btn" class="plz-btn" onclick="queryPostcode()">SUCHEN</button>
+        <span id="plz-error" class="plz-error"></span>
+    </div>
+
+    <!-- Fuel selector -->
     <div class="nav-group">
-        <span>TREIBSTOFF</span>
+        <span id="fuel-label">TREIBSTOFF</span>
         <select id="fuelSelect" onchange="loadVisibleStations()">
             <option value="SUP">SUPER 95</option>
             <option value="DIE">DIESEL</option>
@@ -204,30 +83,42 @@
         </select>
     </div>
 
-    <div class="last-update" id="last-update">DB: —</div>
+    <!-- Language toggle -->
+    <div class="lang-toggle">
+        <button class="lang-btn active" data-lang="de" onclick="setLang('de')">DE</button>
+        <button class="lang-btn"        data-lang="en" onclick="setLang('en')">EN</button>
+    </div>
+
+    <!-- Theme toggle -->
+    <div class="theme-toggle">
+        <button class="theme-btn active" id="theme-dark"  onclick="setTheme('dark')">DARK</button>
+        <button class="theme-btn"        id="theme-light" onclick="setTheme('light')">LIGHT</button>
+    </div>
 </header>
 
+<!-- ── MAIN LAYOUT ──────────────────────────────────────────────────────────── -->
 <div id="layout">
-    <div id="map"></div>
-    <div id="sidebar">
+    <div id="map" role="application" aria-label="Interaktive Spritpreiskarte Österreich"></div>
+
+    <aside id="sidebar" role="complementary" aria-label="Günstigste Tankstellen">
         <div>
             <div class="sidebar-header" id="visible-count">TOP 5 IM BLICKFELD</div>
-            <div class="sidebar-sub" id="visible-sub">— bewege die karte —</div>
+            <div class="sidebar-sub"   id="visible-sub">— bewege die karte —</div>
         </div>
         <div class="station-list" id="station-list"></div>
-        <div style="margin-top: auto; padding-top: 20px; font-family: var(--mono); font-size: 8px; color: var(--text-dim); text-align: center; line-height: 1.6;">
-            <span style="cursor: pointer; text-decoration: underline; letter-spacing: 1px;"
+
+        <div style="margin-top:auto;padding-top:20px;font-family:var(--mono);font-size:8px;color:var(--text-dim);text-align:center;line-height:1.6;">
+            <span id="impressum-link" style="cursor:pointer;text-decoration:underline;letter-spacing:1px;"
                   onclick="openImpressum()"
                   onmouseover="this.style.color='#fff'"
-                  onmouseout="this.style.color='var(--text-dim)'">
-                IMPRESSUM
-            </span>
+                  onmouseout="this.style.color='var(--text-dim)'">IMPRESSUM</span>
         </div>
-    </div>
+    </aside>
 </div>
 
+<!-- ── MAP LEGEND ───────────────────────────────────────────────────────────── -->
 <div class="legend" id="map-legend" style="display:none">
-    PREIS-SKALA
+    <span id="leg-label">PREIS-SKALA</span>
     <div class="legend-bar"></div>
     <div class="legend-labels">
         <span id="leg-min">—</span>
@@ -235,10 +126,11 @@
     </div>
 </div>
 
-<div id="modal" onclick="closeModal()">
+<!-- ── DOSSIER MODAL ────────────────────────────────────────────────────────── -->
+<div id="modal" role="dialog" aria-modal="true" onclick="closeModal()">
     <div id="dossier" onclick="event.stopPropagation()">
         <div class="d-header">
-            <div class="d-id" id="d-id">NODE ID</div>
+            <div class="d-id"    id="d-id">NODE ID</div>
             <div class="d-title" id="d-title">STATION NAME</div>
         </div>
         <div class="d-body">
@@ -246,9 +138,9 @@
             <div class="chart-section">
                 <div class="chart-tabs">
                     <button class="chart-tab active" onclick="switchPeriod('24h',this)">24H</button>
-                    <button class="chart-tab" onclick="switchPeriod('7d',this)">7 TAGE</button>
-                    <button class="chart-tab" onclick="switchPeriod('30d',this)">MONAT</button>
-                    <button class="chart-tab" onclick="switchPeriod('365d',this)">JAHR</button>
+                    <button class="chart-tab"        onclick="switchPeriod('7d',this)">7 TAGE</button>
+                    <button class="chart-tab"        onclick="switchPeriod('30d',this)">MONAT</button>
+                    <button class="chart-tab"        onclick="switchPeriod('365d',this)">JAHR</button>
                 </div>
                 <div class="chart-wrap">
                     <canvas id="price-chart"></canvas>
@@ -256,469 +148,32 @@
             </div>
         </div>
         <div class="d-footer">
-            <a href="#" id="link-google" target="_blank" class="btn btn-google">GOOGLE MAPS</a>
-            <a href="#" id="link-apple"  target="_blank" class="btn btn-apple">APPLE MAPS</a>
-            <button class="btn btn-secondary" onclick="closeModal()">CLOSE</button>
+            <a href="#" id="link-google" target="_blank" rel="noopener" class="btn btn-google">GOOGLE MAPS</a>
+            <a href="#" id="link-apple"  target="_blank" rel="noopener" class="btn btn-apple">APPLE MAPS</a>
+            <button id="btn-close-modal" class="btn btn-secondary" onclick="closeModal()">CLOSE</button>
         </div>
     </div>
 </div>
 
-<div id="impressum-modal" onclick="closeImpressum()" style="position: fixed; inset: 0; background: rgba(0,0,0,0.88); z-index: 2000; display: none; justify-content: center; align-items: center; backdrop-filter: blur(8px);">
-    <div onclick="event.stopPropagation()" style="width: 90vw; max-width: 450px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 28px; font-family: var(--mono);">
-
-        <div style="font-size: 16px; font-weight: 600; margin-bottom: 20px; color: #fff;">Impressum</div>
-
-        <div style="font-size: 11px; color: var(--text); line-height: 1.8; text-align: left;">
-
-            <strong>Betreiber</strong><br>
-            Martin Reisinger<br>
-            Linz, Österreich<br>
-            <a href="mailto:rezepte.home.web@gmail.com" style="color: var(--accent); text-decoration: none;">
-                rezepte.home.web@gmail.com
-            </a><br><br>
-
-            <strong>Was ist das hier?</strong><br>
-            Ein privates Hobbyprojekt – keine Werbung, kein Abo, kein Gewinn.
-            Die Spritpreise kommen direkt von der offiziellen
-            <a href="https://api.e-control.at/sprit/1.0/doc/index.html?url=https://api.e-control.at/sprit/1.0/api-docs%3Fgroup%3Dpublic-api"
-               target="_blank" style="color: var(--accent); text-decoration: none;">
-                E-Control API ↗
-            </a>.<br><br>
-
-            <strong>Datenschutz</strong><br>
-            Zur Analyse der Nutzung verwende ich das datenschutzfreundliche Tool
-            <a href="https://www.goatcounter.com" target="_blank" style="color: var(--accent); text-decoration: none;">GoatCounter</a>.
-            Es werden keine Cookies gesetzt und keine personenbezogenen Daten gespeichert.<br><br>
-
-
-            <strong>Quellcode</strong><br>
-            <a href="https://github.com/MartinReisinger/fuel-tactical"
-               target="_blank" style="color: var(--accent); text-decoration: none;">
-                GitHub ↗
-            </a><br><br>
-
-            <span style="font-size: 9px; color: var(--text-dim);">
-                Offenlegung gem. § 25 MedienG. Privates, nicht-kommerzielles Informationsangebot.
-            </span>
-        </div>
-
-        <button class="btn btn-secondary" onclick="closeImpressum()" style="width: 100%; margin-top: 24px;">CLOSE</button>
+<!-- ── IMPRESSUM MODAL ──────────────────────────────────────────────────────── -->
+<div id="impressum-modal" role="dialog" aria-modal="true" onclick="closeImpressum()">
+    <div class="impressum-box" onclick="event.stopPropagation()">
+        <div class="impressum-title" id="impressum-title">Impressum</div>
+        <div class="impressum-body"  id="impressum-body"></div>
+        <button id="btn-close-impressum" class="btn btn-secondary" onclick="closeImpressum()" style="width:100%;margin-top:24px;">CLOSE</button>
     </div>
 </div>
 
+<!-- ── SCRIPTS (order matters) ──────────────────────────────────────────────── -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script>
-// ── IMPRESSUM MODAL ──────────────────────────────────────────────────────────
-function openImpressum() {
-    document.getElementById('impressum-modal').style.display = 'flex';
-}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 
-function closeImpressum() {
-    document.getElementById('impressum-modal').style.display = 'none';
-}
+<!-- App scripts: translations first, then map, then modal, then UI init -->
+<script src="i18n/translations.js"></script>
+<script src="js/map.js"></script>
+<script src="js/modal.js"></script>
+<script src="js/ui.js"></script>
 
-// ── CONFIG ────────────────────────────────────────────────────────────────────
-const API = '';   // same origin via Flask; empty = relative URLs
-
-// ── MAP SETUP ─────────────────────────────────────────────────────────────────
-const map = L.map('map', {
-    center: [48.0, 14.0], zoom: 9,
-    zoomControl: false, attributionControl: false,
-    keepBuffer: 4
-});
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    keepBuffer: 4
-}).addTo(map);
-L.control.zoom({ position: 'bottomright' }).addTo(map);
-
-// ── STATE ─────────────────────────────────────────────────────────────────────
-let allMarkers   = {};   // station_id → {marker, data}
-let activeChart  = null;
-let currentStation = null;
-let currentPeriod  = '24h';
-let hoveredCardId  = null;
-
-// ── COLOR SCALE ───────────────────────────────────────────────────────────────
-function priceColor(price, min, max) {
-    const t = max === min ? 0 : (price - min) / (max - min);
-    // green → yellow → red
-    const r = t < 0.5 ? Math.round(t * 2 * 255) : 255;
-    const g = t < 0.5 ? 200 : Math.round((1 - (t - 0.5) * 2) * 200);
-    return `rgb(${r},${g},40)`;
-}
-
-// ── LOAD STATIONS ─────────────────────────────────────────────────────────────
-async function loadVisibleStations() {
-    const fuel = document.getElementById('fuelSelect').value;
-    const zoom = map.getZoom();
-
-    // HIER WIRD SOWOHL CENTER ALS AUCH BOUNDS ERMITTELT
-    const center = map.getCenter();
-    const b = map.getBounds();
-
-    const params = new URLSearchParams({
-        fuel: fuel,
-        lat: center.lat.toFixed(5),
-        lon: center.lng.toFixed(5),
-        lat_min: b.getSouth().toFixed(5),
-        lat_max: b.getNorth().toFixed(5),
-        lon_min: b.getWest().toFixed(5),
-        lon_max: b.getEast().toFixed(5),
-    });
-
-    let stations;
-    try {
-        const r = await fetch(`${API}/api/stations?${params}`);
-        stations = await r.json();
-    } catch(e) {
-        document.getElementById('visible-count').textContent = 'API FEHLER';
-        return;
-    }
-
-    // Alte Marker immer zuerst entfernen, egal welcher Zoom-Level
-    Object.values(allMarkers).forEach(({marker}) => map.removeLayer(marker));
-    allMarkers = {};
-
-    if (!stations.length) {
-        document.getElementById('visible-count').textContent = 'KEINE DATEN';
-        document.getElementById('visible-sub').textContent = 'Keine Tankstellen in diesem Bereich';
-        document.getElementById('station-list').innerHTML = '';
-        document.getElementById('map-legend').style.display = 'none';
-        return;
-    }
-
-    const prices = stations.map(s => s.amount).filter(Boolean);
-    const minP = Math.min(...prices);
-    const maxP = Math.max(...prices);
-
-    // Legend & Update-Time aktualisieren
-    document.getElementById('map-legend').style.display = 'block';
-    document.getElementById('leg-min').textContent = `€${minP.toFixed(3)}`;
-    document.getElementById('leg-max').textContent = `€${maxP.toFixed(3)}`;
-
-    if (stations[0]?.recorded_at) {
-        // Zwingt JS zu UTC, rechnet dann in lokale Zeitzone um
-        const dateUTC = new Date(stations[0].recorded_at.replace(' ', 'T') + 'Z');
-
-        // Holt nur die lokale Stunde (z.B. "21")
-        const localHour = dateUTC.toLocaleTimeString('de-AT', { hour: '2-digit' });
-
-        // Zeigt saubere "21:00" an
-        document.getElementById('last-update').textContent = `DB: ${localHour}:00`;
-    }
-
-    // 1. SIDEBAR IMMER BEFÜLLEN (auch wenn rausgezoomt)
-    updateSidebar(stations.slice(0, 5), minP, maxP);
-
-    // 2. MARKER NUR BEI GUTEM ZOOM ZEICHNEN
-    if (zoom >= 8) {
-        document.getElementById('visible-count').textContent = `TOP 5 PREISE`;
-        document.getElementById('visible-sub').textContent = `${stations.length} TANKSTELLEN IM BILD`;
-
-        stations.forEach((s, idx) => {
-            if (!s.amount) return;
-            const color = priceColor(s.amount, minP, maxP);
-            const isTop5 = idx < 5;
-
-            const marker = L.circleMarker([s.latitude, s.longitude], {
-                radius:      isTop5 ? 8 : 5,
-                fillColor:   color,
-                color:       isTop5 ? '#ffffff' : 'rgba(255,255,255,0.2)',
-                weight:      isTop5 ? 2 : 1,
-                fillOpacity: 0.9
-            }).addTo(map);
-
-            marker.on('click', () => openDossier(s));
-
-            // Hover-Effekt
-            marker.on('mouseover', () => marker.setStyle({ radius: 10, weight: 3, color: '#fff' }));
-            marker.on('mouseout',  () => marker.setStyle({
-                radius: isTop5 ? 8 : 5,
-                weight: isTop5 ? 2 : 1,
-                color: isTop5 ? '#ffffff' : 'rgba(255,255,255,0.2)'
-            }));
-
-            allMarkers[s.id] = { marker, data: s };
-        });
-    } else {
-        // Wenn man zu weit rausgezoomt ist: Marker weglassen, aber Info anpassen
-        document.getElementById('visible-count').textContent = `TOP 5 (REGION)`;
-        document.getElementById('visible-sub').textContent = `Zoom rein für Marker (${stations.length} gefunden)`;
-    }
-}
-
-// ── SIDEBAR ───────────────────────────────────────────────────────────────────
-function updateSidebar(top5, minP, maxP) {
-    const list = document.getElementById('station-list');
-    list.innerHTML = '';
-
-    top5.forEach((s, idx) => {
-        const color = priceColor(s.amount, minP, maxP);
-        const card = document.createElement('div');
-        card.className = 'cam-card';
-        card.dataset.id = s.id;
-        card.innerHTML = `
-            <div class="rank-badge">#${idx + 1}</div>
-            <span class="price-text" style="color:${color}">€ ${s.amount.toFixed(3)}</span>
-            <div class="cam-label">
-                <strong>${s.name}</strong>
-                <span>${s.address}, ${s.city}</span>
-            </div>
-        `;
-
-        // Hover → draw connector line to map marker
-        card.addEventListener('mouseenter', () => drawConnector(s.id));
-        card.addEventListener('mouseleave', clearConnector);
-        card.addEventListener('click', () => {
-            map.setView([s.latitude, s.longitude], 15);
-            openDossier(s);
-        });
-
-        list.appendChild(card);
-    });
-}
-
-// ── CONNECTOR LINE (Palantir-style) ───────────────────────────────────────────
-const cvs = document.getElementById('connector-canvas');
-const ctx2d = cvs.getContext('2d');
-
-function resizeCanvas() {
-    cvs.width  = window.innerWidth;
-    cvs.height = window.innerHeight;
-}
-resizeCanvas();
-window.addEventListener('resize', resizeCanvas);
-
-function drawConnector(stationId) {
-    clearConnector();
-    hoveredCardId = stationId;
-    const entry = allMarkers[stationId];
-    if (!entry) return;
-
-    const mapPt = map.latLngToContainerPoint([entry.data.latitude, entry.data.longitude]);
-    const mapEl = document.getElementById('map');
-    const mapRect = mapEl.getBoundingClientRect();
-    const sx = mapRect.left + mapPt.x;
-    const sy = mapRect.top  + mapPt.y;
-
-    // Card position
-    const card = document.querySelector(`.cam-card[data-id="${stationId}"]`);
-    if (!card) return;
-    const cRect = card.getBoundingClientRect();
-    const ex = cRect.left;
-    const ey = cRect.top + cRect.height / 2;
-
-    ctx2d.clearRect(0, 0, cvs.width, cvs.height);
-    ctx2d.beginPath();
-    ctx2d.moveTo(sx, sy);
-    // Bezier for elegance
-    ctx2d.bezierCurveTo(
-        sx + (ex - sx) * 0.6, sy,
-        ex - (ex - sx) * 0.2, ey,
-        ex, ey
-    );
-    ctx2d.strokeStyle = 'rgba(41,121,255,0.6)';
-    ctx2d.lineWidth = 1.5;
-    ctx2d.setLineDash([4, 3]);
-    ctx2d.stroke();
-
-    // Dot on map
-    ctx2d.beginPath();
-    ctx2d.arc(sx, sy, 5, 0, Math.PI * 2);
-    ctx2d.fillStyle = 'rgba(41,121,255,0.9)';
-    ctx2d.fill();
-}
-
-function clearConnector() {
-    ctx2d.clearRect(0, 0, cvs.width, cvs.height);
-    hoveredCardId = null;
-}
-
-// Redraw connector on map move (so line follows)
-map.on('move zoom', () => {
-    if (hoveredCardId) drawConnector(hoveredCardId);
-});
-
-// ── MODAL / DOSSIER ───────────────────────────────────────────────────────────
-async function openDossier(s) {
-    currentStation = s;
-    currentPeriod  = '24h';
-
-    document.getElementById('modal').style.display = 'flex';
-    document.getElementById('d-id').textContent    = `NODE ID: ${s.id}`;
-    document.getElementById('d-title').textContent = s.name;
-
-    const fuel  = document.getElementById('fuelSelect').selectedOptions[0].text;
-    const price = s.amount ? `€ ${s.amount.toFixed(3)}` : '—';
-
-    document.getElementById('link-google').href = `https://www.google.com/maps/dir/?api=1&destination=${s.latitude},${s.longitude}`;
-    document.getElementById('link-apple').href  = `http://maps.apple.com/?daddr=${s.latitude},${s.longitude}`;
-
-    // Telefon Link bauen (tel:)
-    const phoneVal = s.telephone
-        ? `<a href="tel:${s.telephone}" style="color: var(--accent); text-decoration: none;">${s.telephone}</a>`
-        : '—';
-
-    // Website Link bauen (mit http-Check, falls es fehlt)
-    const webVal = s.website
-        ? `<a href="${s.website.startsWith('http') ? s.website : 'http://' + s.website}" target="_blank" style="color: var(--accent); text-decoration: none;">${s.website}</a>`
-        : '—';
-
-    const rows = [
-        ['TREIBSTOFF',   fuel],
-        ['PREIS',       price],
-        ['ADRESSE',     s.address],
-        ['ORT',         `${s.postal_code} ${s.city}`],
-        ['KOORDINATEN', `${s.latitude?.toFixed(5)}, ${s.longitude?.toFixed(5)}`],
-        ['TELEFON',     phoneVal],
-        ['WEBSITE',     webVal],
-    ];
-
-    document.getElementById('d-table').innerHTML = rows
-        .map(([k, v]) => `<div class="d-row"><span class="d-key">${k}</span><span class="d-val">${v}</span></div>`)
-        .join('');
-
-    // Reset tab UI
-    document.querySelectorAll('.chart-tab').forEach(t => t.classList.remove('active'));
-    document.querySelector('.chart-tab').classList.add('active');
-
-    await loadChart('24h');
-}
-
-function closeModal() {
-    document.getElementById('modal').style.display = 'none';
-    if (activeChart) { activeChart.destroy(); activeChart = null; }
-}
-
-async function switchPeriod(period, btn) {
-    document.querySelectorAll('.chart-tab').forEach(t => t.classList.remove('active'));
-    btn.classList.add('active');
-    currentPeriod = period;
-    await loadChart(period);
-}
-
-async function loadChart(period) {
-    if (!currentStation) return;
-    const fuel = document.getElementById('fuelSelect').value;
-    const params = new URLSearchParams({
-        station_id: currentStation.id,
-        fuel,
-        period
-    });
-
-    let history = [];
-    try {
-        const r = await fetch(`${API}/api/history?${params}`);
-        history = await r.json();
-    } catch(e) {}
-
-    if (activeChart) { activeChart.destroy(); activeChart = null; }
-
-    // 1. Echte Zeitfenster berechnen (X-Achse fixieren)
-    const now = new Date();
-    const minDate = new Date();
-    if (period === '24h') minDate.setHours(now.getHours() - 24);
-    else if (period === '7d') minDate.setDate(now.getDate() - 7);
-    else if (period === '30d') minDate.setDate(now.getDate() - 30);
-    else if (period === '365d') minDate.setDate(now.getDate() - 365);
-
-    // 2. Daten für die Zeit-Achse aufbereiten {x: Datum, y: Preis}
-    // Das 'Z' am Ende zwingt JS, es als UTC zu parsen, um Zeitzonen-Bugs zu vermeiden
-    const formatData = (valKey) => history.map(h => ({
-        x: new Date(h.bucket.replace(' ', 'T') + 'Z'),
-        y: h[valKey]
-    }));
-
-    const canvas = document.getElementById('price-chart');
-    activeChart = new Chart(canvas, {
-        type: 'line',
-        data: {
-            datasets: [
-                {
-                    label: 'PREIS',
-                    data: formatData('avg_price'),
-                    borderColor: '#2979ff',
-                    backgroundColor: 'rgba(41,121,255,0.08)',
-                    pointRadius: 2,
-                    fill: true,
-                    borderWidth: 2,
-                    stepped: 'middle'
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            animation: { duration: 300 },
-            plugins: {
-                legend: {
-                    labels: { color: '#555', font: { family: 'IBM Plex Mono', size: 9 }, boxWidth: 20 }
-                },
-                tooltip: {
-                    backgroundColor: '#111', borderColor: '#222', borderWidth: 1,
-                    titleColor: '#2979ff', bodyColor: '#e8e8e8',
-                    titleFont: { family: 'IBM Plex Mono', size: 10 },
-                    bodyFont:  { family: 'IBM Plex Mono', size: 10 },
-                    callbacks: {
-                        label: ctx => `${ctx.dataset.label}: €${ctx.parsed.y?.toFixed(3) ?? '—'}`
-                    }
-                }
-            },
-            scales: {
-                x: {
-                    type: 'time',
-                    min: minDate,
-                    max: now,
-                    time: {
-                        // Zeigt im Tooltip nur die volle Stunde an (z.B. 2026-03-09 21:00)
-                        tooltipFormat: 'yyyy-MM-dd HH:00',
-                        displayFormats: {
-                            hour: 'HH:00',
-                            day: 'MMM dd',
-                            week: 'MMM dd',
-                            month: 'MMM yyyy'
-                        }
-                    },
-                    ticks: {
-                        color: '#444',
-                        font: { family: 'IBM Plex Mono', size: 8 },
-                        maxTicksLimit: 6,
-                    },
-                    grid: { color: 'rgba(255,255,255,0.04)' }
-                },
-                y: {
-                    min: 1.0,     // Fixes Minimum bei 1.0 €
-                    max: 3.0,     // Fixes Maximum bei 3.0 €
-                    ticks: {
-                        color: '#444',
-                        font: { family: 'IBM Plex Mono', size: 9 },
-                        callback: v => `€${v.toFixed(3)}`
-                    },
-                    grid: { color: 'rgba(255,255,255,0.04)' }
-                }
-            }
-        }
-    });
-
-    if (history.length === 0) {
-        // Show "no data" message on chart area
-        const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#333';
-        ctx.font = '11px IBM Plex Mono';
-        ctx.textAlign = 'center';
-        ctx.fillText('KEINE HISTORISCHEN DATEN', canvas.width/2, canvas.height/2);
-    }
-}
-
-// ── MAP EVENTS ────────────────────────────────────────────────────────────────
-let moveTimer = null;
-map.on('moveend zoomend', () => {
-    clearTimeout(moveTimer);
-    moveTimer = setTimeout(loadVisibleStations, 200);
-});
-
-// ── INIT ──────────────────────────────────────────────────────────────────────
-loadVisibleStations();
-</script>
 </body>
 </html>
