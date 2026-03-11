@@ -102,5 +102,3 @@ Dieses Projekt ist eine private, nicht-kommerzielle Web-Applikation. Es besteht 
 * **Datenquelle:** [E-Control Österreich](https://www.e-control.at/)
 * **Hinweis:** Die Identifizierung des Urhebers erfolgt gemäß den gesetzlichen Informationspflichten für private Webseiten.
 
----
-*Entwickelt mit ❤️ für eine effizientere Fahrt in Österreich.*
